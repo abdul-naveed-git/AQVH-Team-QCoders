@@ -2,6 +2,7 @@
   "name": "frontend",
   "version": "1.0.0",
   "private": true,
+  "homepage": ".",
   "dependencies": {
   "framer-motion": "^11.0.0",
   "react": "^18.2.0",
