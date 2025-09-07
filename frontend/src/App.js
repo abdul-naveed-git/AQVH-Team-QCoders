@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import "./style.css";
+import "./styles.css";
 
 const BB84Simulator = () => {
   const [n, setN] = useState(8);
