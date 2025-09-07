@@ -181,6 +181,10 @@ def aes_decrypt(encrypted_data, key):
     plaintext = cipher.decrypt_and_verify(ciphertext, tag)
     return plaintext.decode('utf-8')
 
+@app.route("/")
+def home():
+    return {"message": "Backend is live!"}
+
 @app.route('/api/bb84', methods=['POST'])
 def run_bb84():
     data = request.json
