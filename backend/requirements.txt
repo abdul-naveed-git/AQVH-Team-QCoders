@@ -1,0 +1,8 @@
+flask
+flask-cors
+qiskit
+qiskit-aer
+numpy
+pycryptodome
+gunicorn
+
