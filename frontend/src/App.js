@@ -95,8 +95,8 @@ const BB84Simulator = () => {
   const animatePhoton = (bit, basis, eveHere) => {
     return new Promise((resolve) => {
       const symbol = bit === 0 ? "→" : "↗";
-      const color = bit === 0 ? "#4fc3f7" : "#ff5252";
-      setPhoton({ symbol, color, basis });
+      const color = bit === 0 ? "#4A90E2" : "#FF6B6B";
+      setPhoton({ symbol, color, basis, bit });
       setAnimationKey((prev) => prev + 1);
 
       setTimeout(() => setEveActive(false), (speed * 30) / 2);
@@ -177,138 +177,165 @@ const BB84Simulator = () => {
   const BasisIndicator = ({ basis }) => (
     <span style={{ 
       display: "inline-block",
-      padding: "2px 8px",
-      borderRadius: "4px",
-      background: basis === 0 ? "rgba(41, 182, 246, 0.2)" : "rgba(255, 152, 0, 0.2)",
-      border: `1px solid ${basis === 0 ? "#29b6f6" : "#ff9800"}`,
-      color: basis === 0 ? "#29b6f6" : "#ff9800",
+      padding: "4px 12px",
+      borderRadius: "6px",
+      background: basis === 0 ? "rgba(74, 144, 226, 0.2)" : "rgba(255, 193, 7, 0.2)",
+      border: `2px solid ${basis === 0 ? "#4A90E2" : "#FFC107"}`,
+      color: basis === 0 ? "#4A90E2" : "#FFC107",
       fontWeight: "bold",
-      fontSize: "0.9em"
+      fontSize: "1.1em"
     }}>
       {basis === 0 ? "+" : "×"}
     </span>
   );
 
+  const BitIndicator = ({ bit }) => (
+    <span className={`bit-indicator ${bit === 0 ? "zero" : "one"}`}>
+      {bit}
+    </span>
+  );
+
   return (
     <div className="quantum-simulator">
-      <h1>🔐 BB84 Quantum Key Distribution Simulator</h1>
-
-      <div className="controls">
-        {[
-          { label: "Number of photons", value: n, min: 5, max: 20, step: 1, setter: setN },
-          { label: "Eve probability", value: eveProb, min: 0, max: 1, step: 0.1, setter: setEveProb, format: (v) => `${(v * 100).toFixed(0)}%` },
-          { label: "Animation speed", value: speed, min: 50, max: 500, step: 10, setter: setSpeed, format: (v) => `${v}ms` },
-        ].map((ctrl) => (
-          <div key={ctrl.label} className="control-item">
-            <label>{ctrl.label}: {ctrl.format ? ctrl.format(ctrl.value) : ctrl.value}</label>
-            <input
-              type="range"
-              min={ctrl.min}
-              max={ctrl.max}
-              step={ctrl.step}
-              value={ctrl.value}
-              onChange={(e) => ctrl.setter(Number(e.target.value))}
-              disabled={isRunning}
-            />
-          </div>
-        ))}
+      <div className="header">
+        <h1>Quantum BB84 Simulator</h1>
+        <p className="subtitle">Visualizing Quantum Key Distribution with the BB84 Protocol</p>
       </div>
 
-      <button
-        onClick={runSimulation}
-        disabled={isRunning}
-        className="simulate-button"
-      >
-        {isRunning ? "⏳ Running..." : "▶️ Run Quantum Simulation"}
-      </button>
+      <div className="controls-container">
+        <div className="controls">
+          {[
+            { label: "Number of photons", value: n, min: 5, max: 20, step: 1, setter: setN },
+            { label: "Eve probability", value: eveProb, min: 0, max: 1, step: 0.1, setter: setEveProb, format: (v) => `${(v * 100).toFixed(0)}%` },
+            { label: "Animation speed", value: speed, min: 50, max: 500, step: 10, setter: setSpeed, format: (v) => `${v}ms` },
+          ].map((ctrl) => (
+            <div key={ctrl.label} className="control-item">
+              <label>{ctrl.label}: {ctrl.format ? ctrl.format(ctrl.value) : ctrl.value}</label>
+              <input
+                type="range"
+                min={ctrl.min}
+                max={ctrl.max}
+                step={ctrl.step}
+                value={ctrl.value}
+                onChange={(e) => ctrl.setter(Number(e.target.value))}
+                disabled={isRunning}
+              />
+            </div>
+          ))}
+        </div>
+
+        <div className="simulate-button-container">
+          <button
+            onClick={runSimulation}
+            disabled={isRunning}
+            className="simulate-button"
+          >
+            {isRunning ? "⏳ Running Quantum Simulation..." : "▶️ Run Quantum Simulation"}
+          </button>
+        </div>
+      </div>
 
       <div className="timeline">{timeline}</div>
 
-      <div className="quantum-channel">
-        <div className="party alice">
-          <div className="label">Alice</div>
-          <div className="description">Sender</div>
-        </div>
-        
-        <div className="communication-line">
-          <AnimatePresence>
-            {photon && (
-              <motion.div
-                key={animationKey}
-                initial={{ left: "10%", opacity: 0 }}
-                animate={{ left: "90%", opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: speed / 1000, ease: "linear" }}
-                className="photon"
-                style={{ color: photon.color }}
+      <div className="quantum-channel-container">
+        <div className="quantum-channel">
+          <div className="party alice">
+            <div className="label">Alice</div>
+            <div className="description">Sender</div>
+            <div className="bit-display">
+              {photon && <BitIndicator bit={photon.bit} />}
+            </div>
+          </div>
+          
+          <div className="communication-line">
+            <AnimatePresence>
+              {photon && (
+                <motion.div
+                  key={animationKey}
+                  initial={{ left: "10%", opacity: 0, scale: 0.8 }}
+                  animate={{ left: "90%", opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.5 }}
+                  transition={{ duration: speed / 1000, ease: "easeInOut" }}
+                  className="photon"
+                  style={{ color: photon.color }}
+                >
+                  <div className="photon-symbol">{photon.symbol}</div>
+                  <div className="photon-basis">
+                    <BasisIndicator basis={photon.basis} />
+                  </div>
+                  <div className="photon-bit">
+                    <BitIndicator bit={photon.bit} />
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {eveActive && (
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.5, y: -20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.5, y: -20 }}
+                className="eve-indicator"
               >
-                <div className="photon-symbol">{photon.symbol}</div>
-                <div className="photon-basis">
-                  <BasisIndicator basis={photon.basis} />
-                </div>
+                .
               </motion.div>
             )}
-          </AnimatePresence>
+          </div>
+          
+          <div className="party bob">
+            <div className="label">Bob</div>
+            <div className="description">Receiver</div>
+            <div className="bit-display">
+              {photon && <BitIndicator bit={photon.bit} />}
+            </div>
+          </div>
 
-          {eveActive && (
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.8 }}
-              className="eve-indicator"
-            >
-              🕵️‍♀️ Eve intercepting!
-            </motion.div>
-          )}
+          <div className={`party eve ${eveActive ? 'active' : ''}`}>
+            <div className="label">Eve</div>
+            <div className="description">Eavesdropper</div>
+          </div>
         </div>
-        
-        <div className="party bob">
-          <div className="label">Bob</div>
-          <div className="description">Receiver</div>
-        </div>
-      </div>
-
-      <div className="eve-status">
-        Eve: {eveActive ? "INTERCEPTING" : "inactive"}
       </div>
 
       <div className="results-table">
-        <table>
-          <thead>
-            <tr>
-              {["Alice Bit", "Alice Basis", "Bob Basis", "Bases Match", "Eve Intercepting", "Eve Bit", "Bob Measured Bit"].map((col) => (
-                <th key={col}>{col}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {tableData.map((row, idx) => {
-              const aliceBit = row["Alice Bit"];
-              const bobBit = row["Bob Measured Bit"];
-              const eveIntercept = row["Eve Intercepting"] === "Yes";
-              const basesMatch = row["Match"] === "Yes";
+        <div className="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                {["Alice Bit", "Alice Basis", "Bob Basis", "Bases Match", "Eve Intercepting", "Eve Bit", "Bob Measured Bit"].map((col) => (
+                  <th key={col}>{col}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {tableData.map((row, idx) => {
+                const aliceBit = row["Alice Bit"];
+                const bobBit = row["Bob Measured Bit"];
+                const eveIntercept = row["Eve Intercepting"] === "Yes";
+                const basesMatch = row["Match"] === "Yes";
 
-              let rowClass = "";
-              if (highlightedRow === idx) rowClass = "highlighted";
-              else if (eveIntercept) rowClass = "eve-present";
-              else if (!basesMatch) rowClass = "bases-differ";
-              else if (aliceBit !== bobBit) rowClass = "error";
-              else if (aliceBit === bobBit) rowClass = "correct";
+                let rowClass = "";
+                if (highlightedRow === idx) rowClass = "highlighted";
+                else if (eveIntercept) rowClass = "eve-present";
+                else if (!basesMatch) rowClass = "bases-differ";
+                else if (aliceBit !== bobBit) rowClass = "error";
+                else if (aliceBit === bobBit) rowClass = "correct";
 
-              return (
-                <tr key={idx} className={rowClass}>
-                  {Object.values(row).map((val, i) => (
-                    <td key={i}>{val}</td>
-                  ))}
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+                return (
+                  <tr key={idx} className={rowClass}>
+                    {Object.values(row).map((val, i) => (
+                      <td key={i}>{val}</td>
+                    ))}
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       <div className="results">
-        <h2>📊 Quantum Results</h2>
+        <h2>Quantum Results</h2>
         
         <div className="result-cards">
           <div className="result-card">
@@ -344,7 +371,7 @@ const BB84Simulator = () => {
       </div>
 
       <div className="encryption-section">
-        <h2>🔒 AES Encryption</h2>
+        <h2>AES Encryption</h2>
         
         <div className="encryption-controls">
           <div className="input-group">
@@ -366,7 +393,7 @@ const BB84Simulator = () => {
               <h4>Encrypted Message:</h4>
               <div className="ciphertext">{encryptedData.ciphertext}</div>
               
-              <button onClick={decryptMessage} style={{ marginTop: '10px' }}>
+              <button onClick={decryptMessage} style={{ marginTop: '15px' }}>
                 Decrypt with Quantum Key
               </button>
             </div>
@@ -405,6 +432,10 @@ const BB84Simulator = () => {
             <span>Selected for key</span>
           </div>
         </div>
+      </div>
+
+      <div className="footer">
+        <p>Quantum BB84 Protocol Simulator | Secure Quantum Communication</p>
       </div>
     </div>
   );
