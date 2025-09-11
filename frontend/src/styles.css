@@ -1,5 +1,5 @@
 /* =======================================
-   BB84 Simulator — Professional Quantum Theme
+   Enhanced BB84 Simulator — Quantum Theme
    ======================================= */
 
 /* Import professional font */
@@ -54,22 +54,19 @@ html, body {
 
 body {
   background: radial-gradient(circle at top left, #0f172a, #000000);
-  background-image:
-    linear-gradient(rgba(0, 255, 255, 0.1) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(138, 43, 226, 0.1) 1px, transparent 1px);
-  background-size: 40px 40px;
- 
   color: var(--text);
   font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
 }
 
 .quantum-simulator {
   max-width: 1200px;
   margin: 40px auto;
   padding: 24px;
+  position: relative;
 }
 
 /* ---------- Header ---------- */
@@ -172,6 +169,8 @@ body {
   display: flex;
   justify-content: center;
   align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 
 .simulate-button {
@@ -387,6 +386,18 @@ body {
   display: flex;
   justify-content: center;
   align-items: center;
+}
+
+/* Quantum wave effect */
+.quantum-wave {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.3);
+  z-index: -1;
 }
 
 /* Eve indicator */
@@ -650,6 +661,118 @@ tr.highlighted {
   line-height: 1.5;
 }
 
+/* ---------- Chatbot ---------- */
+.chatbot-container {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 1000;
+}
+
+.chatbot-toggle {
+  background: linear-gradient(135deg, var(--pri-2), var(--sec-2));
+  color: white;
+  border: none;
+  padding: 12px 20px;
+  border-radius: 25px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: var(--shadow-2);
+  transition: all 0.3s ease;
+}
+
+.chatbot-toggle:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-3);
+}
+
+.chatbot-window {
+  position: absolute;
+  bottom: 60px;
+  right: 0;
+  width: 350px;
+  height: 450px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  box-shadow: var(--shadow-2);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.chatbot-header {
+  padding: 16px;
+  background: linear-gradient(135deg, #e0e7ff, #ddd6fe);
+  border-bottom: 1px solid var(--border);
+}
+
+.chatbot-header h3 {
+  color: var(--pri-2);
+  margin-bottom: 4px;
+}
+
+.chatbot-header p {
+  font-size: 0.85rem;
+  color: var(--text-sub);
+}
+
+.chatbot-messages {
+  flex: 1;
+  padding: 16px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.chat-message {
+  padding: 12px;
+  border-radius: 12px;
+  max-width: 80%;
+  line-height: 1.4;
+}
+
+.chat-message.user {
+  background: var(--pri-1);
+  color: white;
+  align-self: flex-end;
+  border-bottom-right-radius: 4px;
+}
+
+.chat-message.bot {
+  background: #eef2ff;
+  color: var(--text);
+  align-self: flex-start;
+  border-bottom-left-radius: 4px;
+}
+
+.chatbot-input {
+  display: flex;
+  padding: 16px;
+  border-top: 1px solid var(--border);
+  gap: 8px;
+}
+
+.chatbot-input input {
+  flex: 1;
+  padding: 10px 16px;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  outline: none;
+  font-family: inherit;
+}
+
+.chatbot-input button {
+  background: var(--pri-1);
+  color: white;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 20px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
 /* ---------- Legend & Footer ---------- */
 .legend {
   background: var(--card);
@@ -745,4 +868,154 @@ tr.highlighted {
     transform: none;
     margin: 0 auto;
   }
+  
+  .chatbot-container {
+    bottom: 10px;
+    right: 10px;
+  }
+  
+  .chatbot-window {
+    width: 300px;
+    height: 400px;
+  }
+}
+/* Chatbot Styles */
+.chatbot-toggle {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background: #4A90E2;
+  color: white;
+  border: none;
+  border-radius: 50px;
+  padding: 12px 20px;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(74, 144, 226, 0.3);
+  z-index: 1000;
+  font-weight: bold;
+  transition: all 0.3s ease;
+}
+
+.chatbot-toggle:hover {
+  background: #357ABD;
+  transform: translateY(-2px);
+}
+
+.chatbot-panel {
+  position: fixed;
+  bottom: 80px;
+  right: 20px;
+  width: 350px;
+  height: 500px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  display: flex;
+  flex-direction: column;
+  z-index: 1000;
+  overflow: hidden;
+}
+
+.chatbot-header {
+  padding: 15px;
+  background: #4A90E2;
+  color: white;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.chatbot-close {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 20px;
+  cursor: pointer;
+}
+
+.chatbot-body {
+  flex: 1;
+  padding: 15px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.msg {
+  display: flex;
+}
+
+.msg.user {
+  justify-content: flex-end;
+}
+
+.msg.bot {
+  justify-content: flex-start;
+}
+
+.bubble {
+  max-width: 80%;
+  padding: 10px 15px;
+  border-radius: 18px;
+  word-wrap: break-word;
+}
+
+.msg.user .bubble {
+  background: #4A90E2;
+  color: white;
+  border-bottom-right-radius: 5px;
+}
+
+.msg.bot .bubble {
+  background: #F0F2F5;
+  color: #333;
+  border-bottom-left-radius: 5px;
+}
+
+.chatbot-quick {
+  padding: 10px 15px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  border-top: 1px solid #eee;
+}
+
+.chip {
+  background: #E8F0FE;
+  border: 1px solid #4A90E2;
+  border-radius: 16px;
+  padding: 6px 12px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.chip:hover {
+  background: #4A90E2;
+  color: white;
+}
+
+.chatbot-input {
+  display: flex;
+  padding: 15px;
+  border-top: 1px solid #eee;
+  gap: 10px;
+}
+
+.chatbot-input input {
+  flex: 1;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 20px;
+  outline: none;
+}
+
+.chatbot-input button {
+  background: #4A90E2;
+  color: white;
+  border: none;
+  border-radius: 20px;
+  padding: 10px 15px;
+  cursor: pointer;
 }
