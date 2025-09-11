@@ -42,13 +42,19 @@ def measure_message(circuits, bases):
 def remove_garbage(a_bases, b_bases, bits):
     return [bit for i, bit in enumerate(bits) if a_bases[i] == b_bases[i]]
 
-def calculate_qber(alice_key, bob_key):
-    """Calculate Quantum Bit Error Rate (QBER)."""
-    if not alice_key or not bob_key:  # avoid division by zero
-        return 0.0
-    errors = sum(a != b for a, b in zip(alice_key, bob_key))
-    qber = errors / len(alice_key)
+def calculate_qber(alice_bits, bob_bits, alice_bases, bob_bases):
+    """
+    Calculate QBER in BB84 based on sifted key comparison.
+    Only bits where Alice and Bob used the same basis are compared.
+    """
+    matched_indices = [i for i in range(len(alice_bits)) if alice_bases[i] == bob_bases[i]]
+    if not matched_indices:
+        return 0.0  # No matched bases, no QBER defined
+
+    errors = sum(alice_bits[i] != bob_bits[i] for i in matched_indices)
+    qber = errors / len(matched_indices)
     return qber
+
 
 def eavesdrop(circuits, eve_bases, eve_prob=0.0):
     """Eve intercepts, measures, and resends qubits with probability eve_prob."""
@@ -126,7 +132,8 @@ def bb84_protocol(n_bits=10, seed=None, with_eve=False, eve_prob=0.0):
     alice_key = remove_garbage(alice_bases, bob_bases, alice_bits)
     bob_key = remove_garbage(alice_bases, bob_bases, bob_results)
 
-    qber = calculate_qber(alice_key, bob_key)
+    qber = calculate_qber(alice_bits, bob_results, alice_bases, bob_bases)
+
 
     # Format table data for frontend
     table_data = []
@@ -234,4 +241,3 @@ import os
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))  # Render will supply PORT
     app.run(host="0.0.0.0", port=port, debug=True)
-
