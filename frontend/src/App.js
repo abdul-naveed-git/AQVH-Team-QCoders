@@ -1,9 +1,9 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import "./styles.css";
 
 const BB84Simulator = () => {
-  const [n, setN] = useState(8);
+  const [n, setN] = useState(10);
   const [eveProb, setEveProb] = useState(0.3);
   const [speed, setSpeed] = useState(150);
   const [tableData, setTableData] = useState([]);
@@ -19,6 +19,171 @@ const BB84Simulator = () => {
   const [message, setMessage] = useState("");
   const [encryptedData, setEncryptedData] = useState(null);
   const [decryptedMessage, setDecryptedMessage] = useState("");
+  const [securityWarning, setSecurityWarning] = useState("");
+
+  // QA Knowledge Base for chatbot
+  const QA_KB = [
+    {
+      q: /what is bb48|bb84 protocol|explain bb84|how does this work/i,
+      a: "BB84 is a quantum key distribution protocol. Alice sends qubits encoded in one of two bases (+ or ×). Bob measures in random bases. They keep only positions where their bases matched (the sifted key). If an eavesdropper (Eve) intercepts, she disturbs the system and increases the QBER (error rate), revealing her presence.",
+    },
+    {
+      q: /what does eve(\'|)s? prob|eve prob|eve probability|what is eve/i,
+      a: "Eve probability controls how often the eavesdropper intercepts and measures photons. Higher values typically raise the Quantum Bit Error Rate (QBER).",
+    },
+    {
+      q: /qber|error rate|why is qber high/i,
+      a: "QBER (Quantum Bit Error Rate) is the percentage of mismatched bits in the sifted key. In an ideal secure channel with no Eve and low noise, QBER stays low. A high QBER suggests eavesdropping or noise.",
+    },
+    {
+      q: /sifted key|final key|why are some bits dropped|matched indices/i,
+      a: "Only positions where Alice and Bob used the same basis are kept — this is key sifting. The simulator highlights those rows and forms the final sifted key from those bits.",
+    },
+    {
+      q: /what does animation speed do|animation speed/i,
+      a: "Animation speed changes how fast each photon travels across the quantum channel (purely visual).",
+    },
+    {
+      q: /aes|encrypt|decrypt|how to encrypt/i,
+      a: "After generating a sifted key, you can encrypt a message. The backend turns the key into an AES key to encrypt your text; then you can decrypt using the same key.",
+    },
+    {
+      q: /backend|api|server|localhost 5000|error connecting/i,
+      a: "This UI expects a local API at http://localhost:5000. Make sure your backend exposes /api/bb84, /api/encrypt, and /api/decrypt. If you see connection errors, start the server or check CORS.",
+    },
+    {
+      q: /why are bases different|bases match|× vs \+|plus vs cross/i,
+      a: "Alice encodes and Bob measures in random bases (+ or ×). Only matching bases yield reliable bits; different bases are discarded during sifting.",
+    },
+    {
+      q: /reset|clear|start over/i,
+      a: "To start over, just run the simulation again. It clears the table, timeline, photon, and results.",
+    },
+    {
+      q: /tips|how to use|help/i,
+      a: "1) Pick photons, Eve probability, and speed. 2) Run the simulation. 3) Watch the table fill. 4) Use the sifted key to encrypt a message; then decrypt it. If QBER > ~25–12%, assume Eve/noise.",
+    },
+  ];
+
+
+  // Chatbot hook
+  const useBot = () => {
+    const [open, setOpen] = useState(false);
+    const [input, setInput] = useState("");
+    const [messages, setMessages] = useState([
+      {
+        role: "bot",
+        text: "Hi! I'm your quantum helper. Ask me about BB84, QBER, Eve, or how to encrypt/decrypt here.",
+      },
+    ]);
+
+    const match = (text) => {
+      for (const { q, a } of QA_KB) {
+        if (q.test(text)) return a;
+      }
+      return "I'm not sure yet — try asking about 'BB84', 'Eve probability', 'QBER', or 'encryption'.";
+    };
+
+    const send = (text) => {
+      if (!text.trim()) return;
+      const userMsg = { role: "user", text };
+      const botMsg = { role: "bot", text: match(text) };
+      setMessages((m) => [...m, userMsg, botMsg]);
+      setInput("");
+    };
+
+    return { open, setOpen, input, setInput, messages, send };
+  };
+
+  // Chatbot component
+  const ChatHelpBot = () => {
+    const { open, setOpen, input, setInput, messages, send } = useBot();
+    const endRef = useRef(null);
+
+    useEffect(() => {
+      endRef.current?.scrollIntoView({ behavior: "smooth" });
+    }, [messages, open]);
+
+    const quickPrompts = useMemo(
+      () => [
+        "What is BB84?",
+        "What does Eve probability do?",
+        "Why is QBER high?",
+        "How do I encrypt a message?",
+      ],
+      []
+    );
+
+    return (
+      <>
+        <button
+          className="chatbot-toggle"
+          aria-label="Open help chatbot"
+          onClick={() => setOpen((v) => !v)}
+        >
+          {open ? "✖" : "💬 Help"}
+        </button>
+
+        <AnimatePresence>
+          {open && (
+            <motion.aside
+              key="chatbot"
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 30 }}
+              transition={{ duration: 0.2 }}
+              className="chatbot-panel"
+            >
+              <div className="chatbot-header">
+                <span>Quantum Help</span>
+                <button className="chatbot-close" onClick={() => setOpen(false)}>
+                  ×
+                </button>
+              </div>
+
+              <div className="chatbot-body">
+                {messages.map((m, i) => (
+                  <div key={i} className={`msg ${m.role}`}>
+                    <div className="bubble">{m.text}</div>
+                  </div>
+                ))}
+                <div ref={endRef} />
+              </div>
+
+              <div className="chatbot-quick">
+                {quickPrompts.map((p) => (
+                  <button
+                    key={p}
+                    onClick={() => send(p)}
+                    className="chip"
+                    type="button"
+                  >
+                    {p}
+                  </button>
+                ))}
+              </div>
+
+              <form
+                className="chatbot-input"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  send(input);
+                }}
+              >
+                <input
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  placeholder="Ask a question…"
+                  aria-label="Type your question"
+                />
+                <button type="submit">Send</button>
+              </form>
+            </motion.aside>
+          )}
+        </AnimatePresence>
+      </>
+    );
+  };
 
   const runSimulation = async () => {
     setIsRunning(true);
@@ -27,6 +192,7 @@ const BB84Simulator = () => {
     setSiftedKey([]);
     setQBER(0);
     setEveKey([]);
+    setSecurityWarning("");
     setTimeline("Sending request to quantum backend...");
 
     try {
@@ -83,6 +249,9 @@ const BB84Simulator = () => {
       setSiftedKey(data.bob_key);
       setQBER((data.qber * 100).toFixed(2));
       setEveKey(data.eve_key);
+      
+      // Check for security warning
+      
       setTimeline("✅ Quantum simulation complete");
     } catch (error) {
       console.error('Error:', error);
@@ -104,12 +273,19 @@ const BB84Simulator = () => {
     });
   };
 
+  // Modify encryptMessage function to check QBER
   const encryptMessage = async () => {
+    if (parseFloat(qber) > 20) {
+      setSecurityWarning("❌ Encryption blocked: QBER is too high (>20%). Potential eavesdropping detected.");
+      return;
+    }
+    
     if (!message || siftedKey.length === 0) {
       setTimeline("Please generate a key and enter a message first");
       return;
     }
 
+    setSecurityWarning("");
     setTimeline("Encrypting message with quantum key...");
     
     try {
@@ -139,12 +315,19 @@ const BB84Simulator = () => {
     }
   };
 
+  // Modify decryptMessage function to check QBER
   const decryptMessage = async () => {
+    if (parseFloat(qber) > 20) {
+      setSecurityWarning("❌ Decryption blocked: QBER is too high (>20%). Potential eavesdropping detected.");
+      return;
+    }
+    
     if (!encryptedData || siftedKey.length === 0) {
       setTimeline("No encrypted data or key available");
       return;
     }
 
+    setSecurityWarning("");
     setTimeline("Decrypting message with quantum key...");
     
     try {
@@ -197,17 +380,25 @@ const BB84Simulator = () => {
 
   return (
     <div className="quantum-simulator">
+      <ChatHelpBot />
+      
       <div className="header">
         <h1>Quantum BB84 Simulator</h1>
         <p className="subtitle">Visualizing Quantum Key Distribution with the BB84 Protocol</p>
       </div>
 
+      {securityWarning && (
+        <div className="security-warning">
+          {securityWarning}
+        </div>
+      )}
+
       <div className="controls-container">
         <div className="controls">
           {[
-            { label: "Number of photons", value: n, min: 5, max: 20, step: 1, setter: setN },
+            { label: "Number of photons", value: n, min: 10, max: 50, step: 1, setter: setN },
             { label: "Eve probability", value: eveProb, min: 0, max: 1, step: 0.1, setter: setEveProb, format: (v) => `${(v * 100).toFixed(0)}%` },
-            { label: "Animation speed", value: speed, min: 50, max: 500, step: 10, setter: setSpeed, format: (v) => `${v}ms` },
+            { label: "Animation speed", value: speed, min: 10, max: 300, step: 10, setter: setSpeed, format: (v) => `${v}ms` },
           ].map((ctrl) => (
             <div key={ctrl.label} className="control-item">
               <label>{ctrl.label}: {ctrl.format ? ctrl.format(ctrl.value) : ctrl.value}</label>
@@ -302,7 +493,7 @@ const BB84Simulator = () => {
           <table>
             <thead>
               <tr>
-                {["Alice Bit", "Alice Basis", "Bob Basis", "Bases Match", "Eve Intercepting", "Eve Bit", "Bob Measured Bit"].map((col) => (
+                {["Alice Bases","Alice Bits", "Bob Basis", "Bob Measured Bit", "Eve Bits ", "Eve Intercepting", "Bases Match"].map((col) => (
                   <th key={col}>{col}</th>
                 ))}
               </tr>
@@ -353,7 +544,7 @@ const BB84Simulator = () => {
           <div className="result-card">
             <h3>Quantum Bit Error Rate</h3>
             <div className="qber-value">{qber}%</div>
-            <p>{qber > 10 ? "High error rate - Eve might be present!" : "Low error rate - channel is secure"}</p>
+            <p>{qber > 20 ? "High error rate - Eve might be present!" : "Low error rate - channel is secure"}</p>
           </div>
           
           <div className="result-card">
@@ -371,7 +562,7 @@ const BB84Simulator = () => {
       </div>
 
       <div className="encryption-section">
-        <h2>AES Encryption</h2>
+        <h2>AES Encryption {parseFloat(qber) > 20 && "(Disabled - High QBER)"}</h2>
         
         <div className="encryption-controls">
           <div className="input-group">
@@ -381,11 +572,15 @@ const BB84Simulator = () => {
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               placeholder="Enter secret message"
+              disabled={parseFloat(qber) > 20}
             />
           </div>
           
-          <button onClick={encryptMessage} disabled={siftedKey.length === 0}>
-            Encrypt with Quantum Key
+          <button 
+            onClick={encryptMessage} 
+            disabled={siftedKey.length === 0 || parseFloat(qber) > 20}
+          >
+            {parseFloat(qber) > 20 ? "Encryption Disabled" : "Encrypt with Quantum Key"}
           </button>
           
           {encryptedData && (
@@ -393,8 +588,12 @@ const BB84Simulator = () => {
               <h4>Encrypted Message:</h4>
               <div className="ciphertext">{encryptedData.ciphertext}</div>
               
-              <button onClick={decryptMessage} style={{ marginTop: '15px' }}>
-                Decrypt with Quantum Key
+              <button 
+                onClick={decryptMessage} 
+                style={{ marginTop: '15px' }}
+                disabled={parseFloat(qber) > 20}
+              >
+                {parseFloat(qber) >20 ? "Decryption Disabled" : "Decrypt with Quantum Key"}
               </button>
             </div>
           )}
