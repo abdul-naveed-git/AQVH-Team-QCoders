@@ -194,7 +194,9 @@ const BB84Simulator = () => {
     setEveKey([]);
     setSecurityWarning("");
     setTimeline("Sending request to quantum backend...");
-
+    setEncryptedData(null);
+    setDecryptedMessage("");
+    setMessage("");
     try {
       const response = await fetch('http://localhost:5000/api/bb84', {
         method: 'POST',
