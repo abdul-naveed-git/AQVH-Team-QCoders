@@ -9,6 +9,8 @@ from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad, unpad
 import base64
 import json
+from functools import wraps
+import hashlib 
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for React frontend
@@ -46,7 +48,7 @@ def calculate_qber(alice_key, bob_key):
     """Calculate Quantum Bit Error Rate (QBER)."""
     if not alice_key or not bob_key:  # avoid division by zero
         return 0.0
-    errors = sum(a != b for a, b in zip(alice_key, bob_key))                                                            
+    errors = sum(a != b for a, b in zip(alice_key, bob_key))
     qber = errors / len(alice_key)
     return qber
 
@@ -157,11 +159,46 @@ def bb84_protocol(n_bits=10, seed=None, with_eve=False, eve_prob=0.0):
         "eve_key": eve_key,
         "matched_indices": [i for i in range(n_bits) if alice_bases[i] == bob_bases[i]]
     }
+def check_security(qber_threshold=0.1):
+    def decorator(f):
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            data = request.json
+            key = data.get('key', [])
+            
+            # If no key is provided or key is empty, allow the operation
+            if not key:
+                return f(*args, **kwargs)
+                
+            # Calculate QBER from the key (this is a simplified example)
+            # In a real implementation, you'd want to track QBER from the BB84 protocol
+            if len(key) > 10:  # Only check if we have enough bits
+                # Simple heuristic: if more than threshold of bits are 1, consider it suspicious
+                ones_ratio = sum(key) / len(key)
+                if abs(ones_ratio - 0.5) > qber_threshold:  # Should be roughly 50/50
+                    return jsonify({'error': 'High QBER detected. Key may be compromised.'}), 400
+            
+            return f(*args, **kwargs)
+        return decorated_function
+    return decorator
 
-def aes_encrypt(message, key):
-    """Encrypt a message using AES with the provided key"""
-    # Convert key to bytes and pad to 16, 24, or 32 bytes
-    key_bytes = pad(str(key).encode(), 32)
+# ---------------------- NEW HELPER ----------------------
+def derive_final_key(bits, length=32):
+    """
+    Apply privacy amplification using SHA-256.
+    Returns a strong key of `length` bytes (default 32 = AES-256).
+    """
+    if not bits:
+        raise ValueError("Empty key bits, cannot derive final key")
+    # Convert list of bits → bytes
+    bitstring = ''.join(map(str, bits))  
+    key_bytes = hashlib.sha256(bitstring.encode()).digest()
+    return key_bytes[:length]   # AES-128 if length=16, AES-256 if length=32
+# --------------------------------------------------------
+
+def aes_encrypt(message, key_bits):
+    """Encrypt a message using AES with privacy-amplified quantum key"""
+    key_bytes = derive_final_key(key_bits, 32)   # ✅ use SHA-256 derived key
     cipher = AES.new(key_bytes, AES.MODE_EAX)
     ciphertext, tag = cipher.encrypt_and_digest(message.encode())
     return {
@@ -170,9 +207,9 @@ def aes_encrypt(message, key):
         'tag': base64.b64encode(tag).decode('utf-8')
     }
 
-def aes_decrypt(encrypted_data, key):
-    """Decrypt a message using AES with the provided key"""
-    key_bytes = pad(str(key).encode(), 32)
+def aes_decrypt(encrypted_data, key_bits):
+    """Decrypt a message using AES with privacy-amplified quantum key"""
+    key_bytes = derive_final_key(key_bits, 32)   # ✅ use SHA-256 derived key
     ciphertext = base64.b64decode(encrypted_data['ciphertext'])
     nonce = base64.b64decode(encrypted_data['nonce'])
     tag = base64.b64decode(encrypted_data['tag'])
@@ -206,6 +243,7 @@ def run_bb84():
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/encrypt', methods=['POST'])
+@check_security()
 def encrypt_message():
     data = request.json
     message = data.get('message', '')
@@ -218,6 +256,7 @@ def encrypt_message():
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/decrypt', methods=['POST'])
+@check_security()
 def decrypt_message():
     data = request.json
     encrypted_data = data.get('encrypted_data', {})
@@ -228,7 +267,9 @@ def decrypt_message():
         return jsonify({'decrypted': decrypted})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+import os
+
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=True)
-
-
+    port = int(os.environ.get("PORT", 5000))  # Render will supply PORT
+    app.run(host="0.0.0.0", port=port, debug=True)
